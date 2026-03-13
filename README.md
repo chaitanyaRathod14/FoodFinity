@@ -1,34 +1,31 @@
 # 🌉 FoodBridge
 
-> Connecting surplus food from donors with NGOs that distribute it to those in need.
+> Connecting surplus food from donors with NGOs and drivers that distribute it to those in need.
 
 ---
 
 ## 📁 Project Structure
 
-```
 FoodBridge/
-├── backend/                  # Node.js + Express + MongoDB API
-│   ├── controllers/          # Business logic
-│   ├── middleware/           # Auth middleware
-│   ├── models/               # Mongoose models
-│   ├── routes/               # Express routes
-│   ├── .env                  # Environment variables
+├── backend/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── .env
 │   ├── package.json
 │   └── server.js
-│
-└── mobile/                   # React Native (Expo) App
+└── mobile/
     ├── src/
-    │   ├── api/              # API client
-    │   ├── components/       # Reusable UI components
-    │   ├── context/          # React Context (auth state)
-    │   ├── navigation/       # React Navigation setup
-    │   ├── screens/          # All app screens
-    │   └── utils/            # Theme, helpers
+    │   ├── api/
+    │   ├── components/
+    │   ├── context/
+    │   ├── navigation/
+    │   ├── screens/
+    │   └── utils/
     ├── App.js
     ├── app.json
     └── package.json
-```
 
 ---
 
@@ -36,186 +33,136 @@ FoodBridge/
 
 - Node.js >= 18
 - MongoDB (local or Atlas)
-- Expo CLI: `npm install -g expo-cli`
-- Expo Go app on your phone (iOS/Android) — or an emulator
+- Expo Go app SDK 53 on your phone
 
 ---
 
 ## 🚀 Backend Setup
 
-```bash
 cd FoodBridge/backend
 npm install
-```
+npm run dev
 
-### Configure Environment
-
-Edit `.env` (already created):
-
-```env
+Configure .env:
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/foodbridge
 JWT_SECRET=foodbridge_super_secret_key_2024
 JWT_EXPIRE=7d
-NODE_ENV=development
-```
-
-> **Using MongoDB Atlas?** Replace `MONGODB_URI` with your Atlas connection string.
-
-### Start Backend
-
-```bash
-# Development (auto-reload)
-npm run dev
-
-# Production
-npm start
-```
-
-You should see:
-```
-✅ MongoDB connected
-🚀 Server running on port 5000
-```
-
-### Create an Admin User
-
-After starting the server, register a user via the app and then manually set their role in MongoDB:
-
-```js
-// In MongoDB shell or Compass:
-db.users.updateOne({ email: "admin@example.com" }, { $set: { role: "admin" } })
-```
 
 ---
 
-## 📱 Mobile App Setup
+## 📱 Mobile Setup
 
-```bash
 cd FoodBridge/mobile
-npm install
-```
+npm install --legacy-peer-deps
+npx expo start --clear
 
-### Configure API URL
-
-Open `src/api/index.js` and set `BASE_URL` to match your machine:
-
-```js
-// Physical device on same WiFi:
-export const BASE_URL = 'http://YOUR_LOCAL_IP:5000/api';
-// e.g. 'http://192.168.1.100:5000/api'
-
-// Android Emulator:
-export const BASE_URL = 'http://10.0.2.2:5000/api';
-
-// iOS Simulator:
-export const BASE_URL = 'http://localhost:5000/api';
-```
-
-> Find your IP: `ipconfig` (Windows) / `ifconfig` (Mac/Linux)
-
-### Start App
-
-```bash
-npx expo start
-```
-
-- Scan the QR code with **Expo Go** on your phone
-- Press `a` for Android emulator
-- Press `i` for iOS simulator
+Set BASE_URL in src/api/index.js to your machine IP.
 
 ---
 
 ## 👥 User Roles
 
-| Role    | Can Do |
-|---------|--------|
-| **Donor** | Create food listings, approve/reject NGO pickup requests |
-| **NGO**   | Browse available listings, request pickups, mark food as collected |
-| **Admin** | View all users and listings, activate/deactivate users |
+| Role   | Can Do |
+|--------|--------|
+| Donor  | Create listings, approve/reject NGO requests |
+| NGO    | Browse food, request pickups, mark collected |
+| Driver | See approved deliveries, accept & deliver food |
+| Admin  | View all users and listings, manage accounts |
 
 ---
 
 ## 📡 API Endpoints
 
 ### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login |
-| GET  | `/api/auth/me` | Get current user |
-| PUT  | `/api/auth/profile` | Update profile |
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+PUT    /api/auth/profile
+POST   /api/auth/forgot-password
+POST   /api/auth/verify-otp
+POST   /api/auth/reset-password
 
 ### Listings
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET  | `/api/listings` | All | Get available listings |
-| GET  | `/api/listings/mine` | Donor | Get my listings |
-| GET  | `/api/listings/:id` | All | Get single listing |
-| POST | `/api/listings` | Donor | Create listing |
-| PUT  | `/api/listings/:id` | Donor | Update listing |
-| DELETE | `/api/listings/:id` | Donor | Delete listing |
+GET    /api/listings
+GET    /api/listings/mine
+GET    /api/listings/:id
+POST   /api/listings
+PUT    /api/listings/:id
+DELETE /api/listings/:id
 
 ### Requests
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/requests/listing/:listingId` | NGO | Request pickup |
-| GET  | `/api/requests/donor` | Donor | My incoming requests |
-| GET  | `/api/requests/ngo` | NGO | My outgoing requests |
-| PUT  | `/api/requests/:id/approve` | Donor | Approve request |
-| PUT  | `/api/requests/:id/reject` | Donor | Reject request |
-| PUT  | `/api/requests/:id/collect` | NGO | Mark as collected |
+POST   /api/requests/listing/:listingId
+GET    /api/requests/donor
+GET    /api/requests/ngo
+PUT    /api/requests/:id/approve
+PUT    /api/requests/:id/reject
+PUT    /api/requests/:id/collect
+
+### Driver
+GET    /api/driver/deliveries
+GET    /api/driver/deliveries/mine
+PUT    /api/driver/deliveries/:id/accept
+PUT    /api/driver/deliveries/:id/status
+PUT    /api/driver/location
 
 ### Admin
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/admin/stats` | Admin | Platform stats |
-| GET | `/api/admin/users` | Admin | All users |
-| GET | `/api/admin/listings` | Admin | All listings |
-| PUT | `/api/admin/users/:id/toggle` | Admin | Toggle user status |
+GET    /api/admin/stats
+GET    /api/admin/users
+GET    /api/admin/listings
+PUT    /api/admin/users/:id/toggle
 
 ---
 
 ## 🗄️ Database Models
 
 ### User
-```
-name, email, password (hashed), role (donor/ngo/admin),
-phone, address, organizationName, isActive
-```
+name, email, password, role (donor/ngo/driver/admin),
+phone, address, organizationName, isActive,
+vehicleType, vehicleNumber, isAvailable, currentLocation,
+resetPasswordOTP, resetPasswordOTPExpire
 
 ### Listing
-```
-donor (ref), title, description, foodType, quantity, servings,
-expiresAt, pickupAddress, status, images, allergens
-```
+donor, title, description, foodType, quantity, servings,
+expiresAt, pickupAddress, pickupLocation, status
 
 ### Request
-```
-listing (ref), ngo (ref), donor (ref), message, status,
-pickupTime, collectedAt, rejectionReason
-```
+listing, ngo, donor, driver, message, status, driverStatus,
+pickupTime, ngoLocation, driverAcceptedAt, pickedUpAt, deliveredAt
 
 ---
 
 ## 🎨 App Screens
 
 ### Donor
-- **Dashboard** — stats, recent listings, pending requests alert
-- **Create Listing** — post surplus food with type, quantity, expiry
-- **Pickup Requests** — approve or reject NGO requests
-- **Profile** — edit info, logout
+- Dashboard — stats, listings, pending requests
+- Create Listing — post food with map location picker
+- Pickup Requests — approve/reject NGO requests
 
 ### NGO
-- **Browse Food** — filter by type, see available listings
-- **Listing Detail** — view full details, request pickup with message
-- **My Requests** — track status, mark as collected
-- **Profile** — edit info, logout
+- Browse Food — filter available listings
+- Listing Detail — view details, pick location on map, request pickup
+- My Requests — track status, see driver info
+
+### Driver
+- Available Deliveries — see all approved jobs, accept delivery
+- My Deliveries — track status: accepted → heading → picked up → delivered
+- Map buttons to open pickup and drop locations
 
 ### Admin
-- **Dashboard** — platform stats: users, listings, requests, collections
-- **Users** — list all users, activate/deactivate accounts
-- **Profile** — logout
+- Dashboard — platform stats
+- Users — manage all accounts
+
+---
+
+## 🏆 Hackathon Demo Flow
+
+1. Register as Donor → post food listing with map location
+2. Register as NGO → browse, pick location on map, request pickup
+3. Login as Donor → approve the request
+4. Register as Driver → see the delivery → accept it
+5. Driver → update status: heading → picked up → delivered
+6. Login as Admin → view all stats
 
 ---
 
@@ -223,21 +170,8 @@ pickupTime, collectedAt, rejectionReason
 
 | Problem | Solution |
 |---------|----------|
-| Can't connect to API | Check `BASE_URL` in `src/api/index.js` matches your IP |
-| MongoDB not connecting | Ensure MongoDB is running: `mongod` |
-| Expo won't start | Run `npx expo doctor` to check setup |
-| JWT errors | Clear app storage and re-login |
-
----
-
-## 🏆 Hackathon Demo Flow
-
-1. Register as **Donor** → post a food listing
-2. Register as **NGO** → browse and request pickup
-3. Login as Donor → approve the request
-4. Login as NGO → mark as collected
-5. Login as **Admin** → view stats and users
-
----
-
-Built with ❤️ for FoodBridge Hackathon
+| Can't connect to API | Check BASE_URL in src/api/index.js |
+| MongoDB not connecting | Run mongod |
+| Expo issues | npx expo start --clear |
+| JWT errors | Clear app and re-login |
+| OTP not received | Check server console log for dev OTP |

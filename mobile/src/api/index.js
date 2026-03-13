@@ -35,6 +35,9 @@ export const authAPI = {
   login: (body) => api('/auth/login', { method: 'POST', body }),
   getMe: () => api('/auth/me'),
   updateProfile: (body) => api('/auth/profile', { method: 'PUT', body }),
+  forgotPassword: (email) => api('/auth/forgot-password', { method: 'POST', body: { email } }),
+  verifyOTP: (email, otp) => api('/auth/verify-otp', { method: 'POST', body: { email, otp } }),
+  resetPassword: (email, otp, newPassword) => api('/auth/reset-password', { method: 'POST', body: { email, otp, newPassword } }),
 };
 
 // Listings

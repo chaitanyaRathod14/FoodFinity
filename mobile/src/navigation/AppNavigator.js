@@ -9,6 +9,7 @@ import { colors } from '../utils/theme';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ListingDetailScreen from '../screens/ListingDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import DonorHomeScreen from '../screens/DonorHomeScreen';
@@ -18,6 +19,9 @@ import NGOBrowseScreen from '../screens/NGOBrowseScreen';
 import NGORequestsScreen from '../screens/NGORequestsScreen';
 import AdminScreen from '../screens/AdminScreen';
 import LocationPickerScreen from '../screens/LocationPickerScreen';
+import DriverHomeScreen from '../screens/DriverHomeScreen';
+import DriverDeliveriesScreen from '../screens/DriverDeliveriesScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +30,7 @@ function AuthNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -36,7 +41,7 @@ function DonorStack() {
       <Stack.Screen name="DonorHome" component={DonorHomeScreen} options={{ title: 'Dashboard' }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ title: 'New Listing' }} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: 'Listing Details' }} />
-       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -52,21 +57,12 @@ function DonorRequestsStack() {
 function DonorTabs() {
   return (
     <Tab.Navigator screenOptions={tabOptions}>
-      <Tab.Screen
-        name="Home"
-        component={DonorStack}
-        options={{ title: 'Dashboard', tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />, headerShown: false }}
-      />
-      <Tab.Screen
-        name="Requests"
-        component={DonorRequestsStack}
-        options={{ title: 'Requests', tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />, headerShown: false }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }}
-      />
+      <Tab.Screen name="Home" component={DonorStack}
+        options={{ title: 'Dashboard', tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />, headerShown: false }} />
+      <Tab.Screen name="Requests" component={DonorRequestsStack}
+        options={{ title: 'Requests', tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />, headerShown: false }} />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
@@ -76,7 +72,7 @@ function NGOBrowseStack() {
     <Stack.Navigator screenOptions={stackOptions}>
       <Stack.Screen name="Browse" component={NGOBrowseScreen} options={{ title: 'Available Food' }} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: 'Food Details' }} />
-       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -92,21 +88,26 @@ function NGORequestsStack() {
 function NGOTabs() {
   return (
     <Tab.Navigator screenOptions={tabOptions}>
-      <Tab.Screen
-        name="Browse"
-        component={NGOBrowseStack}
-        options={{ title: 'Browse', tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />, headerShown: false }}
-      />
-      <Tab.Screen
-        name="Requests"
-        component={NGORequestsStack}
-        options={{ title: 'Requests', tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" focused={focused} />, headerShown: false }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }}
-      />
+      <Tab.Screen name="Browse" component={NGOBrowseStack}
+        options={{ title: 'Browse', tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />, headerShown: false }} />
+      <Tab.Screen name="Requests" component={NGORequestsStack}
+        options={{ title: 'Requests', tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" focused={focused} />, headerShown: false }} />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }} />
+    </Tab.Navigator>
+  );
+}
+
+// ─── Driver Tabs ──────────────────────────────────────────────────────────────
+function DriverTabs() {
+  return (
+    <Tab.Navigator screenOptions={tabOptions}>
+      <Tab.Screen name="Available" component={DriverHomeScreen}
+        options={{ title: 'Available', tabBarIcon: ({ focused }) => <TabIcon emoji="🚚" focused={focused} /> }} />
+      <Tab.Screen name="MyDeliveries" component={DriverDeliveriesScreen}
+        options={{ title: 'My Deliveries', tabBarIcon: ({ focused }) => <TabIcon emoji="📦" focused={focused} /> }} />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
@@ -114,16 +115,10 @@ function NGOTabs() {
 function AdminTabs() {
   return (
     <Tab.Navigator screenOptions={tabOptions}>
-      <Tab.Screen
-        name="Admin"
-        component={AdminScreen}
-        options={{ title: 'Admin', tabBarIcon: ({ focused }) => <TabIcon emoji="⚙️" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }}
-      />
+      <Tab.Screen name="Admin" component={AdminScreen}
+        options={{ title: 'Admin', tabBarIcon: ({ focused }) => <TabIcon emoji="⚙️" focused={focused} /> }} />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
@@ -149,6 +144,8 @@ export default function AppNavigator() {
         <AdminTabs />
       ) : user.role === 'ngo' ? (
         <NGOTabs />
+      ) : user.role === 'driver' ? (
+        <DriverTabs />
       ) : (
         <DonorTabs />
       )}

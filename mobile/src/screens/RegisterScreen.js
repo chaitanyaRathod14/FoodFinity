@@ -5,18 +5,22 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input } from '../components';
-import { colors, spacing, radius } from '../utils/theme';
+import { colors, spacing } from '../utils/theme';
 
 const ROLES = [
   { key: 'donor', label: '🍱 Donor', desc: 'Restaurants, events, individuals' },
   { key: 'ngo', label: '🤝 NGO', desc: 'Organizations collecting food' },
+  { key: 'driver', label: '🚚 Driver', desc: 'Deliver food to NGOs' },
 ];
+
+const VEHICLE_TYPES = ['bike', 'car', 'van', 'truck'];
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
   const [form, setForm] = useState({
     name: '', email: '', password: '', role: 'donor',
     phone: '', address: '', organizationName: '',
+    vehicleType: 'bike', vehicleNumber: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -32,6 +36,7 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email.trim()) e.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email';
     if (!form.password || form.password.length < 6) e.password = 'Min 6 characters';
+    if (form.role === 'driver' && !form.vehicleNumber.trim()) e.vehicleNumber = 'Vehicle number required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -59,7 +64,7 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.formCard}>
           {/* Role selector */}
           <Text style={styles.sectionLabel}>I am a...</Text>
-          <View style={styles.roleRow}>
+          <View style={styles.roleGrid}>
             {ROLES.map(role => (
               <TouchableOpacity
                 key={role.key}
@@ -67,25 +72,58 @@ export default function RegisterScreen({ navigation }) {
                 style={[styles.roleCard, form.role === role.key && styles.roleCardActive]}
               >
                 <Text style={styles.roleLabel}>{role.label}</Text>
-                <Text style={[styles.roleDesc, form.role === role.key && { color: colors.primary }]}>{role.desc}</Text>
+                <Text style={[styles.roleDesc, form.role === role.key && { color: colors.primary }]}>
+                  {role.desc}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Input label="Full Name / Organization Name" value={form.name} onChangeText={v => update('name', v)}
+          <Input label="Full Name *" value={form.name} onChangeText={v => update('name', v)}
             placeholder="Enter your name" error={errors.name} />
+
           {(form.role === 'ngo' || form.role === 'donor') && (
             <Input label="Organization Name (optional)" value={form.organizationName}
               onChangeText={v => update('organizationName', v)} placeholder="e.g. City Rescue Mission" />
           )}
-          <Input label="Email" value={form.email} onChangeText={v => update('email', v)}
+
+          <Input label="Email *" value={form.email} onChangeText={v => update('email', v)}
             placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" error={errors.email} />
-          <Input label="Password" value={form.password} onChangeText={v => update('password', v)}
+          <Input label="Password *" value={form.password} onChangeText={v => update('password', v)}
             placeholder="Min 6 characters" secureTextEntry error={errors.password} />
           <Input label="Phone (optional)" value={form.phone} onChangeText={v => update('phone', v)}
             placeholder="+1 234 567 8900" keyboardType="phone-pad" />
-          <Input label="Address (optional)" value={form.address} onChangeText={v => update('address', v)}
-            placeholder="Street, City, State" multiline />
+
+          {form.role !== 'driver' && (
+            <Input label="Address (optional)" value={form.address} onChangeText={v => update('address', v)}
+              placeholder="Street, City, State" multiline />
+          )}
+
+          {/* Driver specific fields */}
+          {form.role === 'driver' && (
+            <>
+              <Text style={styles.sectionLabel}>Vehicle Details</Text>
+              <View style={styles.vehicleGrid}>
+                {VEHICLE_TYPES.map(v => (
+                  <TouchableOpacity
+                    key={v}
+                    onPress={() => update('vehicleType', v)}
+                    style={[styles.vehicleChip, form.vehicleType === v && styles.vehicleChipActive]}
+                  >
+                    <Text style={styles.vehicleEmoji}>
+                      {v === 'bike' ? '🏍️' : v === 'car' ? '🚗' : v === 'van' ? '🚐' : '🚛'}
+                    </Text>
+                    <Text style={[styles.vehicleText, form.vehicleType === v && { color: colors.primary, fontWeight: '700' }]}>
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Input label="Vehicle Number *" value={form.vehicleNumber}
+                onChangeText={v => update('vehicleNumber', v)}
+                placeholder="e.g. MH12AB1234" autoCapitalize="characters" error={errors.vehicleNumber} />
+            </>
+          )}
 
           <Button title="Create Account" onPress={handleRegister} loading={loading} size="lg" style={{ marginTop: 4 }} />
         </View>
@@ -109,17 +147,24 @@ const styles = StyleSheet.create({
   formCard: {
     backgroundColor: colors.white, borderRadius: 20, padding: spacing.xxl,
     borderWidth: 1, borderColor: colors.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4,
   },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  roleRow: { flexDirection: 'row', gap: 10, marginBottom: spacing.xl },
+  roleGrid: { flexDirection: 'row', gap: 8, marginBottom: spacing.xl, flexWrap: 'wrap' },
   roleCard: {
-    flex: 1, borderWidth: 2, borderColor: colors.border, borderRadius: 12,
-    padding: 12, backgroundColor: colors.gray100,
+    flex: 1, minWidth: '28%', borderWidth: 2, borderColor: colors.border,
+    borderRadius: 12, padding: 10, backgroundColor: colors.gray100,
   },
   roleCardActive: { borderColor: colors.primary, backgroundColor: colors.accent },
-  roleLabel: { fontSize: 15, fontWeight: '700', color: colors.text },
-  roleDesc: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  roleLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
+  roleDesc: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  vehicleGrid: { flexDirection: 'row', gap: 8, marginBottom: spacing.lg, flexWrap: 'wrap' },
+  vehicleChip: {
+    flex: 1, minWidth: '20%', alignItems: 'center', padding: 10,
+    borderWidth: 2, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.gray100,
+  },
+  vehicleChipActive: { borderColor: colors.primary, backgroundColor: colors.accent },
+  vehicleEmoji: { fontSize: 22, marginBottom: 4 },
+  vehicleText: { fontSize: 11, color: colors.textSecondary },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xxl },
   footerText: { color: colors.textSecondary, fontSize: 14 },
   footerLink: { color: colors.primary, fontWeight: '700', fontSize: 14 },

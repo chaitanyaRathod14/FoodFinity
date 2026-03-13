@@ -72,6 +72,15 @@ export default function LoginScreen({ navigation }) {
           <Button title="Sign In" onPress={handleLogin} loading={loading} size="lg" style={{ marginTop: 4 }} />
         </View>
 
+        <TouchableOpacity
+          onPress={() => navigation.navigate('ForgotPassword')}
+          style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 16 }}
+        >
+          <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>
+            Forgot Password?
+          </Text>
+        </TouchableOpacity>
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>

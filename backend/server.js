@@ -21,6 +21,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/listings', require('./routes/listings'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/driver', require('./routes/driver'));
 
 // Health check
 app.get('/', (req, res) => res.json({ message: 'FoodBridge API running 🌉' }));
