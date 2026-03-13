@@ -68,17 +68,4 @@ export const adminAPI = {
   toggleUser: (id) => api(`/admin/users/${id}/toggle`, { method: 'PUT' }),
 };
 
-// Driver
-export const driverAPI = {
-  getAvailableDeliveries: () => api('/driver/deliveries'),
-  getMyDeliveries: () => api('/driver/deliveries/mine'),
-  acceptDelivery: (id) => api(`/driver/deliveries/${id}/accept`, { method: 'PUT' }),
-  updateStatus: (id, status) => api(`/driver/deliveries/${id}/status`, { method: 'PUT', body: { status } }),
-  updateLocation: (latitude, longitude) => api('/driver/location', { method: 'PUT', body: { latitude, longitude } }),
-  requestPickupOTP: (id) => api(`/driver/deliveries/${id}/pickup-otp`, { method: 'POST' }),
-  verifyPickupOTP: (id, otp) => api(`/driver/deliveries/${id}/verify-pickup-otp`, { method: 'POST', body: { otp } }),
-  requestDeliveryOTP: (id) => api(`/driver/deliveries/${id}/delivery-otp`, { method: 'POST' }),
-  verifyDeliveryOTP: (id, otp) => api(`/driver/deliveries/${id}/verify-delivery-otp`, { method: 'POST', body: { otp } }),
-};
-
 export default api;

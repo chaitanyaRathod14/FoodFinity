@@ -4,11 +4,11 @@ import {
   RefreshControl, Alert, TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Card, Badge, EmptyState, Loader, Button, Input } from '../components';
+import { Card, Badge, EmptyState, Loader, Button } from '../components';
 import { colors, spacing } from '../utils/theme';
 import { timeAgo } from '../utils/helpers';
 import { openInMaps } from '../utils/location';
-import api, { driverAPI } from '../api';
+import api from '../api';
 
 const DRIVER_STATUS_LABELS = {
   accepted: { label: 'Accepted', color: colors.warning, next: 'heading_to_pickup', nextLabel: '🚗 Heading to Pickup' },
@@ -22,8 +22,6 @@ export default function DriverDeliveriesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updating, setUpdating] = useState(null);
-  const [activeOTPRequest, setActiveOTPRequest] = useState(null);
-  const [otpInput, setOtpInput] = useState('');
 
   const load = async () => {
     try {
@@ -40,44 +38,17 @@ export default function DriverDeliveriesScreen() {
   useFocusEffect(useCallback(() => { load(); }, []));
 
   const handleUpdateStatus = async (id, status, label) => {
-    if (status === 'picked_up') {
-      // Need OTP from donor
-      try {
-        setUpdating(id);
-        await driverAPI.requestPickupOTP(id);
-        setActiveOTPRequest({ id, type: 'pickup' });
-        Alert.alert('OTP Sent', 'An OTP has been sent to the donor. Please ask them for it.');
-      } catch (err) {
-        Alert.alert('Error', err.message);
-      } finally {
-        setUpdating(null);
-      }
-      return;
-    }
-
-    if (status === 'delivered') {
-      // Need OTP from NGO
-      try {
-        setUpdating(id);
-        await driverAPI.requestDeliveryOTP(id);
-        setActiveOTPRequest({ id, type: 'delivery' });
-        Alert.alert('OTP Sent', 'An OTP has been sent to the NGO. Please ask them for it.');
-      } catch (err) {
-        Alert.alert('Error', err.message);
-      } finally {
-        setUpdating(null);
-      }
-      return;
-    }
-
     Alert.alert('Update Status', `Mark as "${label}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Confirm', onPress: async () => {
           setUpdating(id);
           try {
-            await driverAPI.updateStatus(id, status);
+            await api(`/driver/deliveries/${id}/status`, { method: 'PUT', body: { status } });
             load();
+            if (status === 'delivered') {
+              Alert.alert('🎉 Delivered!', 'Great job! Food has been delivered successfully.');
+            }
           } catch (err) {
             Alert.alert('Error', err.message);
           } finally {
@@ -86,30 +57,6 @@ export default function DriverDeliveriesScreen() {
         },
       },
     ]);
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otpInput || otpInput.length !== 6) {
-      return Alert.alert('Error', 'Please enter a 6-digit OTP');
-    }
-
-    try {
-      setUpdating(activeOTPRequest.id);
-      if (activeOTPRequest.type === 'pickup') {
-        await driverAPI.verifyPickupOTP(activeOTPRequest.id, otpInput);
-        Alert.alert('✅ Verified!', 'Pickup confirmed.');
-      } else {
-        await driverAPI.verifyDeliveryOTP(activeOTPRequest.id, otpInput);
-        Alert.alert('🎉 Delivered!', 'Great job! Food has been delivered successfully.');
-      }
-      setOtpInput('');
-      setActiveOTPRequest(null);
-      load();
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setUpdating(null);
-    }
   };
 
   if (loading) return <Loader text="Loading your deliveries..." />;
@@ -193,36 +140,16 @@ export default function DriverDeliveriesScreen() {
         <Text style={styles.timeAgo}>{timeAgo(item.createdAt)}</Text>
 
         {/* Action button */}
-        {ds.next && activeOTPRequest?.id !== item._id && (
+        {ds.next && (
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: ds.color }, isUpdating && styles.actionBtnDisabled]}
             onPress={() => handleUpdateStatus(item._id, ds.next, ds.nextLabel)}
             disabled={isUpdating}
           >
             <Text style={styles.actionBtnText}>
-              {isUpdating ? 'Updating...' : (ds.next === 'picked_up' ? '📦 Request Pickup OTP' : ds.next === 'delivered' ? '✅ Request Delivery OTP' : ds.nextLabel)}
+              {isUpdating ? 'Updating...' : ds.nextLabel}
             </Text>
           </TouchableOpacity>
-        )}
-
-        {/* OTP Input Section */}
-        {activeOTPRequest?.id === item._id && (
-          <View style={styles.otpSection}>
-            <Text style={styles.otpDesc}>
-              {activeOTPRequest.type === 'pickup' ? 'Enter OTP from Donor:' : 'Enter OTP from NGO:'}
-            </Text>
-            <Input
-              value={otpInput}
-              onChangeText={setOtpInput}
-              placeholder="6-digit OTP"
-              keyboardType="numeric"
-              maxLength={6}
-            />
-            <View style={styles.otpRow}>
-              <Button title="Cancel" variant="ghost" onPress={() => setActiveOTPRequest(null)} style={{ flex: 1, marginRight: 8 }} />
-              <Button title="Verify" onPress={handleVerifyOTP} loading={isUpdating} style={{ flex: 1, marginLeft: 8 }} />
-            </View>
-          </View>
         )}
 
         {item.driverStatus === 'delivered' && (
@@ -308,7 +235,4 @@ const styles = StyleSheet.create({
     paddingVertical: 12, alignItems: 'center',
   },
   completedText: { fontSize: 15, fontWeight: '700', color: colors.success },
-  otpSection: { marginHorizontal: spacing.lg, marginBottom: spacing.lg, padding: 12, backgroundColor: colors.gray100, borderRadius: 10 },
-  otpDesc: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 },
-  otpRow: { flexDirection: 'row', marginTop: 8 },
 });
