@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  Alert, Modal, TextInput, TouchableOpacity, ActivityIndicator,
+  Alert, Modal, TextInput, TouchableOpacity,
 } from 'react-native';
 import { listingsAPI, requestsAPI } from '../api';
 import { Button, Badge, Card, InfoRow, Loader } from '../components';
 import { colors, spacing, foodTypeColors, statusColors } from '../utils/theme';
 import { formatDate, formatDateTime } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
-import { getCurrentLocation, getAddressFromCoords, openInMaps } from '../utils/location';
+import { openInMaps } from '../utils/location';
 
 export default function ListingDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -20,10 +20,9 @@ export default function ListingDetailScreen({ route, navigation }) {
   const [pickupTime, setPickupTime] = useState('');
   const [requesting, setRequesting] = useState(false);
 
-  // NGO location
+  // NGO location — set via map picker
   const [ngoLocation, setNgoLocation] = useState(null);
   const [ngoAddress, setNgoAddress] = useState('');
-  const [fetchingNgoLocation, setFetchingNgoLocation] = useState(false);
 
   useEffect(() => { fetchListing(); }, [id]);
 
@@ -36,20 +35,6 @@ export default function ListingDetailScreen({ route, navigation }) {
       navigation.goBack();
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGetNgoLocation = async () => {
-    setFetchingNgoLocation(true);
-    try {
-      const coords = await getCurrentLocation();
-      const address = await getAddressFromCoords(coords.latitude, coords.longitude);
-      setNgoLocation(coords);
-      setNgoAddress(address);
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setFetchingNgoLocation(false);
     }
   };
 
@@ -74,6 +59,19 @@ export default function ListingDetailScreen({ route, navigation }) {
     } finally {
       setRequesting(false);
     }
+  };
+
+  const openLocationPicker = () => {
+    // Close modal first, open picker, then reopen modal after selection
+    setModalVisible(false);
+    navigation.navigate('LocationPicker', {
+      title: 'Set Your Location',
+      onLocationSelected: ({ latitude, longitude, address }) => {
+        setNgoLocation({ latitude, longitude });
+        setNgoAddress(address);
+        setModalVisible(true);
+      },
+    });
   };
 
   if (loading) return <Loader text="Loading details..." />;
@@ -108,7 +106,7 @@ export default function ListingDetailScreen({ route, navigation }) {
           <InfoRow icon="⏰" label="Expires At" value={formatDateTime(listing.expiresAt)} />
         </Card>
 
-        {/* Pickup Location Card */}
+        {/* Pickup Location */}
         <Card>
           <Text style={styles.sectionTitle}>📍 Pickup Location</Text>
           <InfoRow icon="🏠" label="Address" value={listing.pickupAddress} />
@@ -119,7 +117,7 @@ export default function ListingDetailScreen({ route, navigation }) {
             </>
           )}
 
-          {/* Open in Maps button */}
+          {/* Open in Maps */}
           {hasLocation && (
             <TouchableOpacity
               style={styles.openMapBtn}
@@ -152,8 +150,14 @@ export default function ListingDetailScreen({ route, navigation }) {
         </Text>
 
         {canRequest && (
-          <Button title="🤝 Request Pickup" onPress={() => setModalVisible(true)} size="lg" style={{ marginTop: spacing.lg }} />
+          <Button
+            title="🤝 Request Pickup"
+            onPress={() => setModalVisible(true)}
+            size="lg"
+            style={{ marginTop: spacing.lg }}
+          />
         )}
+
         {isNGO && listing.status !== 'available' && (
           <View style={styles.unavailableBox}>
             <Text style={styles.unavailableText}>
@@ -168,7 +172,7 @@ export default function ListingDetailScreen({ route, navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Request Pickup</Text>
-            <Text style={styles.modalSub}>Send your location so the donor knows where you are</Text>
+            <Text style={styles.modalSub}>Fill in details and share your location</Text>
 
             <Text style={styles.inputLabel}>Message (optional)</Text>
             <TextInput
@@ -190,25 +194,19 @@ export default function ListingDetailScreen({ route, navigation }) {
               placeholderTextColor={colors.textMuted}
             />
 
-            {/* NGO Location */}
+            {/* NGO Location — Map Picker */}
             <Text style={styles.inputLabel}>Your Location (optional)</Text>
             <TouchableOpacity
               style={[styles.locationBtn, ngoLocation && styles.locationBtnActive]}
-              onPress={handleGetNgoLocation}
-              disabled={fetchingNgoLocation}
+              onPress={openLocationPicker}
             >
-              {fetchingNgoLocation ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <>
-                  <Text style={{ fontSize: 16 }}>📍</Text>
-                  <Text style={styles.locationBtnText}>
-                    {ngoLocation ? 'Location Set ✓ Tap to Update' : 'Share My Current Location'}
-                  </Text>
-                </>
-              )}
+              <Text style={{ fontSize: 16 }}>🗺️</Text>
+              <Text style={styles.locationBtnText}>
+                {ngoLocation ? '📍 Change Location on Map' : '📍 Choose My Location on Map'}
+              </Text>
             </TouchableOpacity>
 
+            {/* Show selected NGO location */}
             {ngoLocation && (
               <View style={styles.coordsBox}>
                 <Text style={styles.coordsAddress}>{ngoAddress}</Text>
@@ -246,13 +244,12 @@ const styles = StyleSheet.create({
   openMapText: { fontSize: 14, fontWeight: '700', color: colors.primary },
   openMapCoords: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   openMapArrow: { fontSize: 22, color: colors.primary },
-  noLocationBox: {
-    backgroundColor: colors.gray100, borderRadius: 8, padding: 10, marginTop: 8,
-  },
+  noLocationBox: { backgroundColor: colors.gray100, borderRadius: 8, padding: 10, marginTop: 8 },
   noLocationText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   postedBy: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 8 },
   unavailableBox: {
-    backgroundColor: colors.gray100, borderRadius: 10, padding: spacing.lg, marginTop: spacing.lg,
+    backgroundColor: colors.gray100, borderRadius: 10,
+    padding: spacing.lg, marginTop: spacing.lg,
   },
   unavailableText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -271,12 +268,13 @@ const styles = StyleSheet.create({
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.primary, borderRadius: 10,
-    paddingVertical: 12, gap: 8, marginBottom: 8,
+    paddingVertical: 13, gap: 8, marginBottom: 8,
   },
   locationBtnActive: { backgroundColor: colors.success },
   locationBtnText: { color: colors.white, fontWeight: '700', fontSize: 14 },
   coordsBox: {
     backgroundColor: colors.accent, borderRadius: 8, padding: 10, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.primary + '30',
   },
   coordsAddress: { fontSize: 13, fontWeight: '600', color: colors.primary },
   coordsText: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },

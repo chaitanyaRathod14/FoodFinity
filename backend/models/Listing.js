@@ -13,6 +13,10 @@ const listingSchema = new mongoose.Schema({
   servings: { type: Number, default: 0 },
   expiresAt: { type: Date, required: true },
   pickupAddress: { type: String, required: true },
+  pickupLocation: {
+    latitude: { type: Number },
+    longitude: { type: Number },
+  },
   status: {
     type: String,
     enum: ['available', 'requested', 'collected', 'expired', 'cancelled'],
@@ -21,8 +25,5 @@ const listingSchema = new mongoose.Schema({
   images: [{ type: String }],
   allergens: [{ type: String }],
 }, { timestamps: true });
-
-// Auto-expire listings
-listingSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Listing', listingSchema);

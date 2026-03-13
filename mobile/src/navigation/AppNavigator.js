@@ -17,7 +17,7 @@ import DonorRequestsScreen from '../screens/DonorRequestsScreen';
 import NGOBrowseScreen from '../screens/NGOBrowseScreen';
 import NGORequestsScreen from '../screens/NGORequestsScreen';
 import AdminScreen from '../screens/AdminScreen';
-
+import LocationPickerScreen from '../screens/LocationPickerScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -36,6 +36,7 @@ function DonorStack() {
       <Stack.Screen name="DonorHome" component={DonorHomeScreen} options={{ title: 'Dashboard' }} />
       <Stack.Screen name="CreateListing" component={CreateListingScreen} options={{ title: 'New Listing' }} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: 'Listing Details' }} />
+       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -75,6 +76,7 @@ function NGOBrowseStack() {
     <Stack.Navigator screenOptions={stackOptions}>
       <Stack.Screen name="Browse" component={NGOBrowseScreen} options={{ title: 'Available Food' }} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: 'Food Details' }} />
+       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

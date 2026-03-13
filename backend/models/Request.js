@@ -13,6 +13,11 @@ const requestSchema = new mongoose.Schema({
   pickupTime: { type: Date },
   collectedAt: { type: Date },
   rejectionReason: { type: String },
+  ngoLocation: {
+    address: { type: String },
+    latitude: { type: Number },
+    longitude: { type: Number },
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Request', requestSchema);

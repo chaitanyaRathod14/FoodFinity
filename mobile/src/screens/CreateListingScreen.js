@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Alert, TouchableOpacity, ActivityIndicator,
+  KeyboardAvoidingView, Platform, Alert, TouchableOpacity,
 } from 'react-native';
 import { listingsAPI } from '../api';
 import { Button, Input } from '../components';
 import { colors, spacing, radius } from '../utils/theme';
-import { getCurrentLocation, getAddressFromCoords } from '../utils/location';
 
 const FOOD_TYPES = ['cooked', 'raw', 'packaged', 'beverages', 'bakery', 'other'];
 
@@ -16,28 +15,12 @@ export default function CreateListingScreen({ navigation }) {
     quantity: '', servings: '', expiresAt: '', pickupAddress: '',
   });
   const [pickupLocation, setPickupLocation] = useState(null);
-  const [fetchingLocation, setFetchingLocation] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const update = (key, value) => {
     setForm(f => ({ ...f, [key]: value }));
     setErrors(e => ({ ...e, [key]: '' }));
-  };
-
-  const handleGetLocation = async () => {
-    setFetchingLocation(true);
-    try {
-      const coords = await getCurrentLocation();
-      const address = await getAddressFromCoords(coords.latitude, coords.longitude);
-      setPickupLocation(coords);
-      update('pickupAddress', address);
-      Alert.alert('✅ Location Set', `Address: ${address}`);
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setFetchingLocation(false);
-    }
   };
 
   const validate = () => {
@@ -122,45 +105,48 @@ export default function CreateListingScreen({ navigation }) {
           placeholder="YYYY-MM-DD HH:MM" error={errors.expiresAt} />
         <Text style={styles.hint}>Format: 2024-03-25 18:00</Text>
 
-        {/* Pickup Address + Location */}
+        {/* Pickup Address + Map Picker */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Pickup Address *</Text>
-          <Input
-            value={form.pickupAddress}
-            onChangeText={v => update('pickupAddress', v)}
-            placeholder="Enter address or use current location"
-            multiline
-            error={errors.pickupAddress}
-            containerStyle={{ marginBottom: 8 }}
-          />
 
-          {/* Get Current Location Button */}
+          {/* Choose on Map Button */}
           <TouchableOpacity
             style={[styles.locationBtn, pickupLocation && styles.locationBtnActive]}
-            onPress={handleGetLocation}
-            disabled={fetchingLocation}
+            onPress={() => navigation.navigate('LocationPicker', {
+              title: 'Set Pickup Location',
+              onLocationSelected: ({ latitude, longitude, address }) => {
+                setPickupLocation({ latitude, longitude });
+                update('pickupAddress', address);
+              },
+            })}
           >
-            {fetchingLocation ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <>
-                <Text style={styles.locationBtnIcon}>📍</Text>
-                <Text style={styles.locationBtnText}>
-                  {pickupLocation ? 'Location Set — Tap to Update' : 'Use Current Location'}
-                </Text>
-              </>
-            )}
+            <Text style={styles.locationBtnIcon}>🗺️</Text>
+            <Text style={styles.locationBtnText}>
+              {pickupLocation ? '📍 Change Pickup Location on Map' : '📍 Choose Pickup Location on Map'}
+            </Text>
           </TouchableOpacity>
 
-          {/* Show coordinates if set */}
+          {/* Show selected location */}
           {pickupLocation && (
             <View style={styles.coordsBox}>
+              <Text style={styles.coordsAddress}>{form.pickupAddress}</Text>
               <Text style={styles.coordsText}>
                 📌 {pickupLocation.latitude.toFixed(5)}, {pickupLocation.longitude.toFixed(5)}
               </Text>
               <Text style={styles.coordsHint}>NGOs can tap to open this in Maps</Text>
             </View>
           )}
+
+          {/* Manual input fallback */}
+          <Text style={styles.orText}>— or type manually —</Text>
+          <Input
+            value={form.pickupAddress}
+            onChangeText={v => update('pickupAddress', v)}
+            placeholder="Type address manually"
+            multiline
+            error={errors.pickupAddress}
+            containerStyle={{ marginBottom: 0 }}
+          />
         </View>
 
         <Button title="Post Listing" onPress={handleSubmit} loading={loading} size="lg" style={{ marginTop: 8 }} />
@@ -189,15 +175,20 @@ const styles = StyleSheet.create({
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.primary, borderRadius: radius.md,
-    paddingVertical: 12, paddingHorizontal: 16, gap: 8,
+    paddingVertical: 13, paddingHorizontal: 16, gap: 8, marginBottom: 10,
   },
   locationBtnActive: { backgroundColor: colors.success },
   locationBtnIcon: { fontSize: 16 },
   locationBtnText: { color: colors.white, fontWeight: '700', fontSize: 14 },
   coordsBox: {
-    backgroundColor: colors.accent, borderRadius: 8, padding: 10, marginTop: 8,
+    backgroundColor: colors.accent, borderRadius: 8, padding: 10, marginBottom: 8,
     borderWidth: 1, borderColor: colors.primary + '30',
   },
-  coordsText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  coordsAddress: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  coordsText: { fontSize: 12, color: colors.primaryDark, marginTop: 3 },
   coordsHint: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
+  orText: {
+    textAlign: 'center', color: colors.textMuted,
+    fontSize: 12, marginVertical: 8,
+  },
 });
