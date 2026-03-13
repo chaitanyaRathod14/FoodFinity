@@ -16,17 +16,14 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [devOtp, setDevOtp] = useState('');
 
   const handleSendOTP = async () => {
     if (!email.trim()) return Alert.alert('Error', 'Enter your email');
     setLoading(true);
     try {
       const res = await authAPI.forgotPassword(email.trim().toLowerCase());
-      // Dev mode: show OTP (remove in production)
-      if (res.otp) setDevOtp(res.otp);
       setStep(STEPS.OTP);
-      Alert.alert('✅ OTP Sent', res.otp ? `Dev OTP: ${res.otp}` : 'Check your email for the OTP');
+      Alert.alert('✅ OTP Sent', 'Check your email for the OTP');
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
@@ -108,11 +105,6 @@ export default function ForgotPasswordScreen({ navigation }) {
           {/* Step 2: OTP */}
           {step === STEPS.OTP && (
             <>
-              {devOtp ? (
-                <View style={styles.devBox}>
-                  <Text style={styles.devText}>🧪 Dev Mode OTP: {devOtp}</Text>
-                </View>
-              ) : null}
               <Input
                 label="6-Digit OTP"
                 value={otp}
@@ -182,11 +174,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white, borderRadius: 20, padding: spacing.xxl,
     borderWidth: 1, borderColor: colors.border,
   },
-  devBox: {
-    backgroundColor: '#FFF3CD', borderRadius: 8, padding: 10, marginBottom: 16,
-    borderWidth: 1, borderColor: '#FFC107',
-  },
-  devText: { fontSize: 14, fontWeight: '700', color: '#856404', textAlign: 'center' },
   backBtn: { alignItems: 'center', marginTop: 24 },
   backText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
 });

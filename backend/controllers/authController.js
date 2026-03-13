@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail');
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
@@ -74,16 +75,28 @@ exports.forgotPassword = async (req, res) => {
     const otp = user.generateOTP();
     await user.save({ validateBeforeSave: false });
 
-    // In production: send via email/SMS
-    // For hackathon: return OTP in response
-    console.log(`OTP for ${email}: ${otp}`);
+    // Send via email
+    const message = `Your password reset OTP is: ${otp}\n\nIt is valid for 10 minutes.\nIf you did not request this, please ignore this email.`;
+    
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'FoodBridge Password Reset OTP',
+        message
+      });
 
-    res.json({
-      success: true,
-      message: 'OTP sent to your email',
-      // Remove this in production:
-      otp,
-    });
+      res.status(200).json({
+        success: true,
+        message: 'OTP sent to your email',
+      });
+    } catch (err) {
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      console.error('Email could not be sent', err);
+      return res.status(500).json({ success: false, message: 'Email could not be sent' });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
