@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  Alert, Modal, TextInput,
+  Alert, Modal, TextInput, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { listingsAPI, requestsAPI } from '../api';
 import { Button, Badge, Card, InfoRow, Loader } from '../components';
 import { colors, spacing, foodTypeColors, statusColors } from '../utils/theme';
 import { formatDate, formatDateTime } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentLocation, getAddressFromCoords, openInMaps } from '../utils/location';
 
 export default function ListingDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -19,9 +20,12 @@ export default function ListingDetailScreen({ route, navigation }) {
   const [pickupTime, setPickupTime] = useState('');
   const [requesting, setRequesting] = useState(false);
 
-  useEffect(() => {
-    fetchListing();
-  }, [id]);
+  // NGO location
+  const [ngoLocation, setNgoLocation] = useState(null);
+  const [ngoAddress, setNgoAddress] = useState('');
+  const [fetchingNgoLocation, setFetchingNgoLocation] = useState(false);
+
+  useEffect(() => { fetchListing(); }, [id]);
 
   const fetchListing = async () => {
     try {
@@ -35,10 +39,32 @@ export default function ListingDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleGetNgoLocation = async () => {
+    setFetchingNgoLocation(true);
+    try {
+      const coords = await getCurrentLocation();
+      const address = await getAddressFromCoords(coords.latitude, coords.longitude);
+      setNgoLocation(coords);
+      setNgoAddress(address);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setFetchingNgoLocation(false);
+    }
+  };
+
   const handleRequest = async () => {
     setRequesting(true);
     try {
-      await requestsAPI.create(id, { message: requestMessage, pickupTime: pickupTime || undefined });
+      await requestsAPI.create(id, {
+        message: requestMessage,
+        pickupTime: pickupTime || undefined,
+        ngoLocation: ngoLocation ? {
+          address: ngoAddress,
+          latitude: ngoLocation.latitude,
+          longitude: ngoLocation.longitude,
+        } : undefined,
+      });
       setModalVisible(false);
       Alert.alert('✅ Request Sent!', 'The donor will review your pickup request.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -57,6 +83,7 @@ export default function ListingDetailScreen({ route, navigation }) {
   const sc = statusColors[listing.status] || statusColors.available;
   const isNGO = user?.role === 'ngo';
   const canRequest = isNGO && listing.status === 'available';
+  const hasLocation = listing.pickupLocation?.latitude && listing.pickupLocation?.longitude;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -69,11 +96,10 @@ export default function ListingDetailScreen({ route, navigation }) {
       </View>
 
       <View style={styles.content}>
-        {/* Title */}
         <Text style={styles.title}>{listing.title}</Text>
         <Text style={styles.description}>{listing.description}</Text>
 
-        {/* Details card */}
+        {/* Details */}
         <Card style={{ marginTop: spacing.md }}>
           <Text style={styles.sectionTitle}>📋 Details</Text>
           <InfoRow icon="🍽️" label="Food Type" value={listing.foodType.charAt(0).toUpperCase() + listing.foodType.slice(1)} />
@@ -82,9 +108,9 @@ export default function ListingDetailScreen({ route, navigation }) {
           <InfoRow icon="⏰" label="Expires At" value={formatDateTime(listing.expiresAt)} />
         </Card>
 
-        {/* Pickup card */}
+        {/* Pickup Location Card */}
         <Card>
-          <Text style={styles.sectionTitle}>📍 Pickup Information</Text>
+          <Text style={styles.sectionTitle}>📍 Pickup Location</Text>
           <InfoRow icon="🏠" label="Address" value={listing.pickupAddress} />
           {listing.donor && (
             <>
@@ -92,26 +118,46 @@ export default function ListingDetailScreen({ route, navigation }) {
               <InfoRow icon="📞" label="Phone" value={listing.donor.phone || 'Not provided'} />
             </>
           )}
+
+          {/* Open in Maps button */}
+          {hasLocation && (
+            <TouchableOpacity
+              style={styles.openMapBtn}
+              onPress={() => openInMaps(
+                listing.pickupLocation.latitude,
+                listing.pickupLocation.longitude,
+                listing.pickupAddress
+              )}
+            >
+              <Text style={styles.openMapIcon}>🗺️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.openMapText}>Open Pickup Location in Maps</Text>
+                <Text style={styles.openMapCoords}>
+                  {listing.pickupLocation.latitude.toFixed(5)}, {listing.pickupLocation.longitude.toFixed(5)}
+                </Text>
+              </View>
+              <Text style={styles.openMapArrow}>›</Text>
+            </TouchableOpacity>
+          )}
+
+          {!hasLocation && (
+            <View style={styles.noLocationBox}>
+              <Text style={styles.noLocationText}>📍 No map location provided for this listing</Text>
+            </View>
+          )}
         </Card>
 
-        {/* Posted by */}
         <Text style={styles.postedBy}>
           Posted by {listing.donor?.organizationName || listing.donor?.name} • {formatDate(listing.createdAt)}
         </Text>
 
-        {/* Request button for NGO */}
         {canRequest && (
-          <Button
-            title="🤝 Request Pickup"
-            onPress={() => setModalVisible(true)}
-            size="lg"
-            style={{ marginTop: spacing.lg }}
-          />
+          <Button title="🤝 Request Pickup" onPress={() => setModalVisible(true)} size="lg" style={{ marginTop: spacing.lg }} />
         )}
         {isNGO && listing.status !== 'available' && (
           <View style={styles.unavailableBox}>
             <Text style={styles.unavailableText}>
-              This listing is {listing.status} and no longer available for pickup.
+              This listing is {listing.status} and no longer available.
             </Text>
           </View>
         )}
@@ -122,7 +168,7 @@ export default function ListingDetailScreen({ route, navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Request Pickup</Text>
-            <Text style={styles.modalSub}>Send a message to the donor</Text>
+            <Text style={styles.modalSub}>Send your location so the donor knows where you are</Text>
 
             <Text style={styles.inputLabel}>Message (optional)</Text>
             <TextInput
@@ -144,6 +190,34 @@ export default function ListingDetailScreen({ route, navigation }) {
               placeholderTextColor={colors.textMuted}
             />
 
+            {/* NGO Location */}
+            <Text style={styles.inputLabel}>Your Location (optional)</Text>
+            <TouchableOpacity
+              style={[styles.locationBtn, ngoLocation && styles.locationBtnActive]}
+              onPress={handleGetNgoLocation}
+              disabled={fetchingNgoLocation}
+            >
+              {fetchingNgoLocation ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 16 }}>📍</Text>
+                  <Text style={styles.locationBtnText}>
+                    {ngoLocation ? 'Location Set ✓ Tap to Update' : 'Share My Current Location'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {ngoLocation && (
+              <View style={styles.coordsBox}>
+                <Text style={styles.coordsAddress}>{ngoAddress}</Text>
+                <Text style={styles.coordsText}>
+                  {ngoLocation.latitude.toFixed(5)}, {ngoLocation.longitude.toFixed(5)}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.modalButtons}>
               <Button title="Cancel" onPress={() => setModalVisible(false)} variant="outline" style={{ flex: 1 }} />
               <Button title="Send Request" onPress={handleRequest} loading={requesting} style={{ flex: 1, marginLeft: 10 }} />
@@ -163,10 +237,22 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 8, letterSpacing: -0.3 },
   description: { fontSize: 15, color: colors.textSecondary, lineHeight: 22 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 12 },
+  openMapBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: colors.accent, borderRadius: 10, padding: 12,
+    marginTop: 8, borderWidth: 1, borderColor: colors.primary + '30',
+  },
+  openMapIcon: { fontSize: 24 },
+  openMapText: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  openMapCoords: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  openMapArrow: { fontSize: 22, color: colors.primary },
+  noLocationBox: {
+    backgroundColor: colors.gray100, borderRadius: 8, padding: 10, marginTop: 8,
+  },
+  noLocationText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   postedBy: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 8 },
   unavailableBox: {
     backgroundColor: colors.gray100, borderRadius: 10, padding: spacing.lg, marginTop: spacing.lg,
-    borderWidth: 1, borderColor: colors.border,
   },
   unavailableText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -182,5 +268,17 @@ const styles = StyleSheet.create({
     padding: 12, fontSize: 14, color: colors.text, marginBottom: 16,
     textAlignVertical: 'top',
   },
+  locationBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary, borderRadius: 10,
+    paddingVertical: 12, gap: 8, marginBottom: 8,
+  },
+  locationBtnActive: { backgroundColor: colors.success },
+  locationBtnText: { color: colors.white, fontWeight: '700', fontSize: 14 },
+  coordsBox: {
+    backgroundColor: colors.accent, borderRadius: 8, padding: 10, marginBottom: 12,
+  },
+  coordsAddress: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  coordsText: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   modalButtons: { flexDirection: 'row', marginTop: 8 },
 });

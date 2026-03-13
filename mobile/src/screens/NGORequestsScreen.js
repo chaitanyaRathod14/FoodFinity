@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  RefreshControl, Alert,
+  RefreshControl, Alert, TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { requestsAPI } from '../api';
 import { Card, Badge, Button, EmptyState, Loader } from '../components';
 import { colors, spacing, statusColors } from '../utils/theme';
 import { formatDate, timeAgo } from '../utils/helpers';
+import { openInMaps } from '../utils/location';
 
 const STATUS_ICONS = {
   pending: '⏳', approved: '✅', rejected: '❌', collected: '🎉',
@@ -95,8 +96,31 @@ export default function NGORequestsScreen({ navigation }) {
         {isApproved && item.donor && (
           <View style={styles.donorInfo}>
             <Text style={styles.donorLabel}>Contact Donor:</Text>
-            <Text style={styles.donorText}>{item.donor?.organizationName || item.donor?.name} • {item.donor?.phone}</Text>
+            <Text style={styles.donorText}>
+              {item.donor?.organizationName || item.donor?.name} • {item.donor?.phone}
+            </Text>
           </View>
+        )}
+
+        {/* Donor Pickup Location — open in maps */}
+        {isApproved && item.listing?.pickupLocation?.latitude && (
+          <TouchableOpacity
+            style={styles.mapBtn}
+            onPress={() => openInMaps(
+              item.listing.pickupLocation.latitude,
+              item.listing.pickupLocation.longitude,
+              item.listing.pickupAddress || 'Pickup Location'
+            )}
+          >
+            <Text style={styles.mapBtnIcon}>🗺️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.mapBtnTitle}>Open Pickup Location in Maps</Text>
+              <Text style={styles.mapBtnAddress} numberOfLines={1}>
+                {item.listing.pickupAddress}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 18, color: colors.primary }}>›</Text>
+          </TouchableOpacity>
         )}
 
         <Text style={styles.timeAgo}>{timeAgo(item.createdAt)}</Text>
@@ -174,5 +198,13 @@ const styles = StyleSheet.create({
   donorInfo: { backgroundColor: colors.accent, borderRadius: 8, padding: 8, marginBottom: 8 },
   donorLabel: { fontSize: 11, fontWeight: '700', color: colors.primaryDark, textTransform: 'uppercase' },
   donorText: { fontSize: 13, color: colors.primary, fontWeight: '500', marginTop: 2 },
-  timeAgo: { fontSize: 11, color: colors.textMuted },
+  timeAgo: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
+  mapBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.accent, borderRadius: 8, padding: 10,
+    marginBottom: 8, borderWidth: 1, borderColor: colors.primary + '30',
+  },
+  mapBtnIcon: { fontSize: 20 },
+  mapBtnTitle: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  mapBtnAddress: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 });

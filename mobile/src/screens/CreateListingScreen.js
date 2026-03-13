@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Alert, TouchableOpacity,
+  KeyboardAvoidingView, Platform, Alert, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { listingsAPI } from '../api';
 import { Button, Input } from '../components';
 import { colors, spacing, radius } from '../utils/theme';
+import { getCurrentLocation, getAddressFromCoords } from '../utils/location';
 
 const FOOD_TYPES = ['cooked', 'raw', 'packaged', 'beverages', 'bakery', 'other'];
 
@@ -14,12 +15,29 @@ export default function CreateListingScreen({ navigation }) {
     title: '', description: '', foodType: 'cooked',
     quantity: '', servings: '', expiresAt: '', pickupAddress: '',
   });
+  const [pickupLocation, setPickupLocation] = useState(null);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const update = (key, value) => {
     setForm(f => ({ ...f, [key]: value }));
     setErrors(e => ({ ...e, [key]: '' }));
+  };
+
+  const handleGetLocation = async () => {
+    setFetchingLocation(true);
+    try {
+      const coords = await getCurrentLocation();
+      const address = await getAddressFromCoords(coords.latitude, coords.longitude);
+      setPickupLocation(coords);
+      update('pickupAddress', address);
+      Alert.alert('✅ Location Set', `Address: ${address}`);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setFetchingLocation(false);
+    }
   };
 
   const validate = () => {
@@ -46,6 +64,7 @@ export default function CreateListingScreen({ navigation }) {
         ...form,
         expiresAt: new Date(form.expiresAt).toISOString(),
         servings: form.servings ? parseInt(form.servings) : 0,
+        ...(pickupLocation && { pickupLocation }),
       };
       await listingsAPI.create(payload);
       Alert.alert('✅ Success', 'Your food listing has been posted!', [
@@ -103,8 +122,46 @@ export default function CreateListingScreen({ navigation }) {
           placeholder="YYYY-MM-DD HH:MM" error={errors.expiresAt} />
         <Text style={styles.hint}>Format: 2024-03-25 18:00</Text>
 
-        <Input label="Pickup Address *" value={form.pickupAddress} onChangeText={v => update('pickupAddress', v)}
-          placeholder="Full pickup address" multiline error={errors.pickupAddress} />
+        {/* Pickup Address + Location */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>Pickup Address *</Text>
+          <Input
+            value={form.pickupAddress}
+            onChangeText={v => update('pickupAddress', v)}
+            placeholder="Enter address or use current location"
+            multiline
+            error={errors.pickupAddress}
+            containerStyle={{ marginBottom: 8 }}
+          />
+
+          {/* Get Current Location Button */}
+          <TouchableOpacity
+            style={[styles.locationBtn, pickupLocation && styles.locationBtnActive]}
+            onPress={handleGetLocation}
+            disabled={fetchingLocation}
+          >
+            {fetchingLocation ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <>
+                <Text style={styles.locationBtnIcon}>📍</Text>
+                <Text style={styles.locationBtnText}>
+                  {pickupLocation ? 'Location Set — Tap to Update' : 'Use Current Location'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Show coordinates if set */}
+          {pickupLocation && (
+            <View style={styles.coordsBox}>
+              <Text style={styles.coordsText}>
+                📌 {pickupLocation.latitude.toFixed(5)}, {pickupLocation.longitude.toFixed(5)}
+              </Text>
+              <Text style={styles.coordsHint}>NGOs can tap to open this in Maps</Text>
+            </View>
+          )}
+        </View>
 
         <Button title="Post Listing" onPress={handleSubmit} loading={loading} size="lg" style={{ marginTop: 8 }} />
         <Button title="Cancel" onPress={() => navigation.goBack()} variant="ghost" style={{ marginTop: 8 }} />
@@ -129,4 +186,18 @@ const styles = StyleSheet.create({
   typeChipTextActive: { color: colors.primary, fontWeight: '700' },
   row: { flexDirection: 'row' },
   hint: { fontSize: 11, color: colors.textMuted, marginTop: -10, marginBottom: spacing.lg },
+  locationBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary, borderRadius: radius.md,
+    paddingVertical: 12, paddingHorizontal: 16, gap: 8,
+  },
+  locationBtnActive: { backgroundColor: colors.success },
+  locationBtnIcon: { fontSize: 16 },
+  locationBtnText: { color: colors.white, fontWeight: '700', fontSize: 14 },
+  coordsBox: {
+    backgroundColor: colors.accent, borderRadius: 8, padding: 10, marginTop: 8,
+    borderWidth: 1, borderColor: colors.primary + '30',
+  },
+  coordsText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  coordsHint: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
 });
