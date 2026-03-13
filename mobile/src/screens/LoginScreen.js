@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
+  KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input } from '../components';
@@ -40,7 +40,11 @@ export default function LoginScreen({ navigation }) {
         {/* Logo */}
         <View style={styles.logoArea}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoEmoji}>🌉</Text>
+            <Image 
+              source={require('../../logo/image.png')} 
+              style={{ width: 80, height: 80, borderRadius: 40 }} 
+              resizeMode="cover" 
+            />
           </View>
           <Text style={styles.appName}>FoodBridge</Text>
           <Text style={styles.tagline}>Connecting surplus food with those who need it</Text>

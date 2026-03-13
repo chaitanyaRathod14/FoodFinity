@@ -27,6 +27,10 @@ const requestSchema = new mongoose.Schema({
   driverAcceptedAt: { type: Date },
   pickedUpAt: { type: Date },
   deliveredAt: { type: Date },
+  pickupOTP: { type: String },
+  pickupOTPExpire: { type: Date },
+  deliveryOTP: { type: String },
+  deliveryOTPExpire: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Request', requestSchema);

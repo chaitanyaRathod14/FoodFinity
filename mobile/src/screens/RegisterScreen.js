@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
+  KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input } from '../components';
@@ -57,6 +57,11 @@ export default function RegisterScreen({ navigation }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
+          <Image 
+            source={require('../../logo/image.png')} 
+            style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 12, alignSelf: 'center' }} 
+            resizeMode="cover" 
+          />
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join FoodBridge today</Text>
         </View>
@@ -141,7 +146,7 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl, paddingBottom: 40 },
-  header: { paddingTop: 48, paddingBottom: 24 },
+  header: { paddingTop: 48, paddingBottom: 24, alignItems: 'center' },
   title: { fontSize: 28, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
   formCard: {
